@@ -111,6 +111,7 @@ class poortorch():
                     out.append(poortorch.tensor._create_list_iterable(shape, fx, *args, dim=dim+1, **kwargs))
                 return out
 
+        # This method is a direct result of the sto
         @staticmethod
         def _edit_list_iterable(xl: list, fx, *args, **kwargs):
             if isinstance(xl, (int, float)):
