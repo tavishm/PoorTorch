@@ -20,6 +20,11 @@ class poortorch():
         l = poortorch.tensor._create_list_iterable(list(shape), lambda: 0, dim=0)
         return poortorch.tensor(l, requires_grad=requires_grad)
     
+    @staticmethod
+    def full(x: int | float , shape: tuple, requires_grad=False): # TODO: Update this to tuple
+        l = poortorch.tensor._create_list_iterable(list(shape), lambda: x, dim=0)
+        return poortorch.tensor(l, requires_grad=requires_grad)
+    
     ## Tensor Editing Functions
     @staticmethod
     def exp(xt: 'poortorch.tensor'): 
@@ -136,6 +141,23 @@ class poortorch():
             self.requires_grad = requires_grad
             self.grad = None
 
+        def get(self, *idx):
+            shape = poortorch.tensor._shape(self)
+            if len(idx)!= len(shape):
+                raise Exception(f"{len(shape)} indices required 😔")
+            elif not all(isinstance(i,int) for i in idx):
+                raise Exception('indices must be integers 😔')
+            elif not all(i[0]<i[1] for i in zip(idx, shape)):
+                raise Exception(f"index out of range 😔\nShape of tensor: {shape}")
+            else:
+                def _get(xl: list, idx: list):
+                    a = xl[idx[0]]
+                    if isinstance(a, (int, float)):
+                        return a
+                    else:
+                        return _get(a,idx[1:])
+                return _get(self.__data__, idx)
+    
         def backward(self):
             if self.operator == '+':           
                 def _backward(self):
@@ -144,11 +166,29 @@ class poortorch():
                     # Gradients flow back equally in such simple element-wise addition operations. 
                     if self.grad == None: # To check for chain rule predecessors
                         print(list(self.history[0].shape), poortorch.zeros(self.history[0].shape))
-                        self.history[0].grad = poortorch.exp(poortorch.zeros(self.history[0].shape))
-                        self.history[1].grad = poortorch.exp(poortorch.zeros(self.history[1].shape))
+                        self.history[0].grad = poortorch.full(1, self.history[0].shape)
+                        self.history[1].grad = poortorch.full(1, self.history[1].shape)
                     else: 
-                        self.history[0].grad = self.grad * poortorch.exp(poortorch.zeros(self.history[0].shape)) 
-                        self.history[1].grad = self.grad * poortorch.exp(poortorch.zeros(self.history[1].shape))
+                        self.history[0].grad = self.grad * poortorch.full(1, self.history[0].shape)
+                        self.history[1].grad = self.grad * poortorch.full(1, self.history[1].shape)
+
+                    # Calculating gradients for the tensors that zt was made of
+                    self.history[0].backward()
+                    self.history[1].backward()
+
+                _backward(self)
+            
+            if self.operator == '-':           
+                def _backward(self):
+                    # z = x + y
+                    # dz / dx = 1; dz / dy = -1
+                    if self.grad == None: # To check for chain rule predecessors
+                        print(list(self.history[0].shape), poortorch.zeros(self.history[0].shape))
+                        self.history[0].grad = poortorch.full(1, self.history[0].shape)
+                        self.history[1].grad = poortorch.full(1, self.history[1].shape)
+                    else: 
+                        self.history[0].grad = self.grad * poortorch.full(1, self.history[0].shape)
+                        self.history[1].grad = self.grad * poortorch.full(-1, self.history[1].shape)
 
                     # Calculating gradients for the tensors that zt was made of
                     self.history[0].backward()
@@ -175,7 +215,24 @@ class poortorch():
             # Removing grad for tensors that don't need to store grad
             for t in self.history:
                 if not t.requires_grad: t.grad = None
-                
+
+        def __getitem__(self, idx: int):
+            if isinstance(idx, int):
+                if not isinstance(idx, int):
+                    raise Exception('index must be an integer 😔')
+                elif idx>= len(self.__data__) or idx< -len(self.__data__):
+                    raise Exception('index out of range 😔')
+                else:
+                    return self.__data__[idx]
+            else:
+                l = [idx.start,idx.stop, idx.step]
+                if not all( isinstance(i, (int)) or i==None for i in l):
+                    raise Exception('indices must be an integers 😔')
+                if not all(i< len(self.__data__) or i>= -len(self.__data__) for i in l if i!= None):
+                    raise Exception('index out of range 😔')
+                else: 
+                    return self.__data__[l[0]:l[1]:l[2]]
+                      
 
         def __str__(self):
             return f"PoorTorch({str(self.__data__)})"
@@ -200,6 +257,11 @@ class poortorch():
                 raise Exception("Given two tensors don't have the same shape 😔")
             return poortorch.tensor(poortorch.tensor._add_iterable(self.__data__, yt.__data__), history=[self, yt], operator='+')
         
+        def __sub__(self, yt: 'poortorch.tensor'): 
+            if self.shape != yt.shape:
+                raise Exception("Given two tensors don't have the same shape 😔")
+            
+            return poortorch.tensor(poortorch.tensor._sub_iterable(self.__data__, yt.__data__), history=[self, yt], operator='-')        
 
         def __mul__(self, yt: 'poortorch.tensor'): 
             if self.shape != yt.shape:
