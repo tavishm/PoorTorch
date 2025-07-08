@@ -28,7 +28,7 @@ class poortorch():
     
     @staticmethod
     def log(xt: 'poortorch.tensor'):
-        l = poortorch.tensor._edit_list_iterable(xt.__data__, math.log)
+        l = poortorch.tensor._edit_list_iterable(xt.__data__, math.log, condition=lambda x: x > 0) # Logarithm is only defined for positive numbers
         return poortorch.tensor(l, history=[xt], operator='log')
     
     # TODO: Check for numerical stability
@@ -179,11 +179,25 @@ class poortorch():
 
         def __str__(self):
             return f"PoorTorch({str(self.__data__)})"
+        
+        def __int__(self):
+            if self.info_type != "value":
+                raise Exception("Cannot convert tensor to int 😔")
+            return int(self.__data__[0])
+        
+        def __float__(self):
+            if self.info_type != "value":
+                raise Exception("Cannot convert tensor to float 😔")
+            return float(self.__data__[0])
+        
+        def __iter__(self):
+            if self.info_type != "tensor":
+                raise Exception("Cannot convert value to list 😔")
+            return iter(self.__data__) 
 
         def __add__(self, yt: 'poortorch.tensor'): 
             if self.shape != yt.shape:
                 raise Exception("Given two tensors don't have the same shape 😔")
-            
             return poortorch.tensor(poortorch.tensor._add_iterable(self.__data__, yt.__data__), history=[self, yt], operator='+')
         
 
@@ -240,13 +254,17 @@ class poortorch():
                 return out
 
         @staticmethod
-        def _edit_list_iterable(xl: list, fx, *args, **kwargs):
+        def _edit_list_iterable(xl: list, fx, *args, condition=None, **kwargs):
             if isinstance(xl, (int, float)):
-                return fx(xl, *args, **kwargs)
+                if condition is None: return fx(xl, *args, **kwargs)
+                elif condition(xl):
+                    return fx(xl, *args, **kwargs)
+                else:
+                    return float('nan')
             else:
                 out = []
                 for xi in xl:
-                    out.append(poortorch.tensor._edit_list_iterable(xi, fx, *args, **kwargs))
+                    out.append(poortorch.tensor._edit_list_iterable(xi, fx, condition=condition,*args, **kwargs))
                 return out    
 
 
