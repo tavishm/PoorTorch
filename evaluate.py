@@ -31,6 +31,7 @@ class EvaluatePoortorch():
             'float': self.float_method_eval,
 
         }
+        self.torch_eval = torch_eval
         if torch_eval:
             self.functions_to_evaluate.update({
                 poortorch.mean: self.mean_eval,
@@ -207,7 +208,7 @@ class EvaluatePoortorch():
             if abs(sigmoid_val - expected) > 1e-10:
                 known_check = False
         
-        if torch_eval:
+        if self.torch_eval:
             # Compare with torch implementation
             import torch
             xp_o = torch.tensor(xt_o.__data__, dtype=torch.float32)
@@ -262,7 +263,7 @@ class EvaluatePoortorch():
             if relu_val != expected:
                 known_check = False
         
-        if torch_eval:
+        if self.torch_eval:
             # Compare with torch implementation
             import torch
             xp_o = torch.tensor(xt_o.__data__, dtype=torch.float32)
@@ -637,7 +638,7 @@ class EvaluatePoortorch():
         history_correct = (mean_result.history == [tensor_1d] and 
                           mean_result.operator == 'mean-dim-None')
         
-        if torch_eval:
+        if self.torch_eval:
             # Compare with torch implementation
             import torch
             torch_tensor_1d = torch.tensor(tensor_1d.__data__, dtype=torch.float32)
