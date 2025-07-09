@@ -182,17 +182,17 @@ class poortorch():
         
         def __int__(self):
             if self.info_type != "value":
-                raise Exception("Cannot convert tensor to int 😔")
+                raise TypeError("Cannot convert tensor to int 😔")
             return int(self.__data__[0])
         
         def __float__(self):
             if self.info_type != "value":
-                raise Exception("Cannot convert tensor to float 😔")
+                raise TypeError("Cannot convert tensor to float 😔")
             return float(self.__data__[0])
         
         def __iter__(self):
             if self.info_type != "tensor":
-                raise Exception("Cannot convert value to list 😔")
+                raise TypeError("Cannot convert value to list 😔")
             return iter(self.__data__) 
 
         def __add__(self, yt: 'poortorch.tensor'): 
